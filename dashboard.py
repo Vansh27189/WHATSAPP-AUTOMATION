@@ -22,21 +22,34 @@ if not st.session_state.logged_in:
     with col2:
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
-        if st.button("🔐 Login", type="primary", use_container_width=True):
-            if username == "admin" and password == "admin@2026":
+if st.button("🔐 Login", type="primary", use_container_width=True):
+    if username == "admin" and password == "admin@2026":
+        st.session_state.logged_in = True
+        st.session_state.institute_name = "ALL"
+        st.session_state.is_admin = True
+        st.rerun()
+    else:
+        try:
+            # Cloud — reads from Streamlit secrets
+            inst_passwords = st.secrets["institutes"]
+            inst_names     = st.secrets["institute_names"]
+            if username in inst_passwords and inst_passwords[username] == password:
                 st.session_state.logged_in = True
-                st.session_state.institute_name = "ALL"
-                st.session_state.is_admin = True
+                st.session_state.institute_name = inst_names[username]
+                st.session_state.is_admin = False
                 st.rerun()
             else:
-                result = verify_login(username, password)
-                if result:
-                    st.session_state.logged_in = True
-                    st.session_state.institute_name = result
-                    st.session_state.is_admin = False
-                    st.rerun()
-                else:
-                    st.error("❌ Wrong username or password")
+                st.error("❌ Wrong username or password")
+        except Exception:
+            # Local — reads from coaching.db
+            result = verify_login(username, password)
+            if result:
+                st.session_state.logged_in = True
+                st.session_state.institute_name = result
+                st.session_state.is_admin = False
+                st.rerun()
+            else:
+                st.error("❌ Wrong username or password")
     st.stop()
 
 # ── SIDEBAR ──────────────────────────────────────────
