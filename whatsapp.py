@@ -1,9 +1,19 @@
 import requests, os
 from dotenv import load_dotenv
+import requests
+import os
 load_dotenv()
 
-TOKEN    = os.getenv("ACCESS_TOKEN")
-PHONE_ID = os.getenv("PHONE_NUMBER_ID")
+try:
+    import streamlit as st
+    TOKEN    = st.secrets["ACCESS_TOKEN"]
+    PHONE_ID = st.secrets["PHONE_NUMBER_ID"]
+except Exception:
+    # Falls back to .env for local development
+    from dotenv import load_dotenv
+    load_dotenv()
+    TOKEN    = os.getenv("ACCESS_TOKEN")
+    PHONE_ID = os.getenv("PHONE_NUMBER_ID")
 
 def send_text(to, message):
     url = f"https://graph.facebook.com/v21.0/{PHONE_ID}/messages"
