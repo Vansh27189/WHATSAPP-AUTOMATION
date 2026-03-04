@@ -3,19 +3,19 @@ import time
 
 print("🚀 CoachingBot Starting...")
 
-# Test: send reminder RIGHT NOW (don't wait for 9 AM)
-print("\n--- Testing fee reminder now ---")
+# Fire immediately once to test — don't wait for 9AM
+print("\n--- Sending reminders now (test run) ---")
 send_fee_reminders()
 
-# Start the scheduler (runs in background)
+# Start background scheduler
 scheduler.start()
-print("\n✅ Scheduler started!")
-print("⏰ Fee reminders will auto-run at 9 AM and 6 PM daily")
+print("\n✅ Scheduler running!")
+print("⏰ Auto reminders: 9:00 AM and 6:00 PM daily")
 print("Press Ctrl+C to stop\n")
 
 try:
     while True:
-        time.sleep(60)  # Keep the program alive
+        time.sleep(60)
 except KeyboardInterrupt:
     scheduler.shutdown()
     print("\n🛑 CoachingBot stopped")

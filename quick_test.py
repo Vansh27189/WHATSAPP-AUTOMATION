@@ -1,7 +1,8 @@
 from whatsapp import send_text
-from database import students
+from database import get_unpaid_students
 import time
 
+students = get_unpaid_students()
 print(f"📤 Sending to {len(students)} students...\n")
 
 for student in students:
@@ -15,4 +16,4 @@ for student in students:
     time.sleep(1)
     print(f"✅ Sent to {student['name']} ({student['phone']})\n")
 
-print(f"🎉 Done! Messages sent to {len(students)} students.")
+print(f"🎉 Done! Sent to {len(students)} students.")

@@ -47,3 +47,15 @@ def send_template(to, template_name, params):
     print(f"Status: {res.status_code}")
     print(f"Response: {res.json()}")
     return res
+
+def send_attendance_alert(student_name, phone, institute):
+    from datetime import date
+    today = date.today().strftime("%d %B %Y")
+    message = (
+        f"📋 Attendance Alert\n\n"
+        f"Dear Parent, *{student_name}* was marked *absent* "
+        f"today ({today}) at {institute}.\n\n"
+        f"Reply if this is a mistake."
+    )
+    send_text(phone, message)
+    print(f"✅ Attendance alert sent to {phone}")
