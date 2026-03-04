@@ -22,34 +22,39 @@ if not st.session_state.logged_in:
     with col2:
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
-if st.button("🔐 Login", type="primary", use_container_width=True):
-    if username == "admin" and password == "admin@2026":
-        st.session_state.logged_in = True
-        st.session_state.institute_name = "ALL"
-        st.session_state.is_admin = True
-        st.rerun()
-    else:
-        try:
-            # Cloud — reads from Streamlit secrets
-            inst_passwords = st.secrets["institutes"]
-            inst_names     = st.secrets["institute_names"]
-            if username in inst_passwords and inst_passwords[username] == password:
+
+        if st.button("🔐 Login", type="primary", use_container_width=True):
+            if username == "admin" and password == "admin@2026":
                 st.session_state.logged_in = True
-                st.session_state.institute_name = inst_names[username]
-                st.session_state.is_admin = False
+                st.session_state.institute_name = "ALL"
+                st.session_state.is_admin = True
                 st.rerun()
             else:
-                st.error("❌ Wrong username or password")
-        except Exception:
-            # Local — reads from coaching.db
-            result = verify_login(username, password)
-            if result:
-                st.session_state.logged_in = True
-                st.session_state.institute_name = result
-                st.session_state.is_admin = False
-                st.rerun()
-            else:
-                st.error("❌ Wrong username or password")
+                logged = False
+
+                # Cloud — try Streamlit secrets first
+                try:
+                    inst_pass  = st.secrets["institutes"]
+                    inst_names = st.secrets["institute_names"]
+                    if username in inst_pass and inst_pass[username] == password:
+                        st.session_state.logged_in = True
+                        st.session_state.institute_name = inst_names[username]
+                        st.session_state.is_admin = False
+                        logged = True
+                        st.rerun()
+                except Exception:
+                    pass
+
+                # Local — fallback to SQLite
+                if not logged:
+                    result = verify_login(username, password)
+                    if result:
+                        st.session_state.logged_in = True
+                        st.session_state.institute_name = result
+                        st.session_state.is_admin = False
+                        st.rerun()
+                    else:
+                        st.error("❌ Wrong username or password")
     st.stop()
 
 # ── SIDEBAR ──────────────────────────────────────────
@@ -82,7 +87,7 @@ if is_admin:
     st.header("👥 All Students")
     all_students = get_all_students()
     if all_students:
-        search_admin = st.text_input("🔍 Search student by name or phone")
+        search_admin = st.text_input("🔍 Search by name or phone")
         df_admin = pd.DataFrame(all_students)
         if search_admin:
             df_admin = df_admin[
@@ -130,15 +135,12 @@ search = st.text_input("🔍 Search by name, phone or batch")
 
 if students:
     df = pd.DataFrame(students)
-
-    # Apply search filter
     if search:
         df = df[
             df["name"].str.contains(search, case=False, na=False)  |
             df["phone"].str.contains(search, na=False)              |
             df["batch"].str.contains(search, case=False, na=False)
         ]
-
     if df.empty:
         st.warning(f"No students found for '{search}'")
     else:
@@ -183,58 +185,55 @@ with col1:
 with col2:
     st.metric("Will receive reminder", len(unpaid))
 
-# ── SECTION 4: MARK FEE PAID / UNPAID ───────────────
+# ── SECTION 4: FEE STATUS MANAGEMENT ────────────────
 st.markdown("---")
 st.header("💰 Fee Status Management")
 
-if students:
-    # Search inside this section too
-    fee_search = st.text_input("🔍 Search student", key="fee_search")
+fee_search = st.text_input("🔍 Search student", key="fee_search")
+filtered = students
+if fee_search:
+    filtered = [
+        s for s in students
+        if fee_search.lower() in s["name"].lower()
+        or fee_search in s["phone"]
+    ]
 
-    filtered = students
-    if fee_search:
-        filtered = [
-            s for s in students
-            if fee_search.lower() in s["name"].lower()
-            or fee_search in s["phone"]
-        ]
+if not filtered and fee_search:
+    st.warning(f"No student found for '{fee_search}'")
+elif filtered:
+    col1, col2 = st.columns(2)
 
-    if not filtered:
-        st.warning(f"No student found for '{fee_search}'")
-    else:
-        col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("Mark as ✅ Paid")
+        unpaid_filtered = [s for s in filtered if not s["fee_paid"]]
+        if unpaid_filtered:
+            paid_opts     = {f"{s['name']} — {s['phone']}": s["phone"]
+                             for s in unpaid_filtered}
+            paid_selected = st.selectbox("Select unpaid student",
+                                         list(paid_opts.keys()),
+                                         key="paid_select")
+            if st.button("✅ Mark as Paid", type="primary"):
+                mark_paid(paid_opts[paid_selected])
+                st.success(f"✅ {paid_selected.split('—')[0].strip()} marked as paid!")
+                st.rerun()
+        else:
+            st.success("🎉 All filtered students have paid!")
 
-        with col1:
-            st.subheader("Mark as ✅ Paid")
-            unpaid_filtered = [s for s in filtered if not s["fee_paid"]]
-            if unpaid_filtered:
-                paid_opts     = {f"{s['name']} — {s['phone']}": s["phone"]
-                                 for s in unpaid_filtered}
-                paid_selected = st.selectbox("Select unpaid student",
-                                             list(paid_opts.keys()),
-                                             key="paid_select")
-                if st.button("✅ Mark as Paid", type="primary"):
-                    mark_paid(paid_opts[paid_selected])
-                    st.success(f"✅ {paid_selected.split('—')[0].strip()} marked as paid!")
-                    st.rerun()
-            else:
-                st.success("🎉 All filtered students have paid!")
-
-        with col2:
-            st.subheader("Undo ↩️ Mark as Unpaid")
-            paid_filtered = [s for s in filtered if s["fee_paid"]]
-            if paid_filtered:
-                unpaid_opts     = {f"{s['name']} — {s['phone']}": s["phone"]
-                                   for s in paid_filtered}
-                unpaid_selected = st.selectbox("Select paid student",
-                                               list(unpaid_opts.keys()),
-                                               key="unpaid_select")
-                if st.button("↩️ Mark as Unpaid"):
-                    mark_unpaid(unpaid_opts[unpaid_selected])
-                    st.warning(f"↩️ {unpaid_selected.split('—')[0].strip()} marked as unpaid!")
-                    st.rerun()
-            else:
-                st.info("No paid students to undo.")
+    with col2:
+        st.subheader("Undo ↩️ Mark as Unpaid")
+        paid_filtered = [s for s in filtered if s["fee_paid"]]
+        if paid_filtered:
+            unpaid_opts     = {f"{s['name']} — {s['phone']}": s["phone"]
+                               for s in paid_filtered}
+            unpaid_selected = st.selectbox("Select paid student",
+                                           list(unpaid_opts.keys()),
+                                           key="unpaid_select")
+            if st.button("↩️ Mark as Unpaid"):
+                mark_unpaid(unpaid_opts[unpaid_selected])
+                st.warning(f"↩️ {unpaid_selected.split('—')[0].strip()} marked as unpaid!")
+                st.rerun()
+        else:
+            st.info("No paid students to undo.")
 
 # ── SECTION 5: ATTENDANCE ALERT ──────────────────────
 st.markdown("---")
@@ -249,7 +248,6 @@ if students:
             if att_search.lower() in s["name"].lower()
             or att_search in s["phone"]
         ]
-
     if att_list:
         att_opts = {f"{s['name']} — {s['phone']}": s for s in att_list}
         att_sel  = st.selectbox("Select absent student", list(att_opts.keys()))
@@ -280,4 +278,3 @@ if st.button("📤 Send Broadcast"):
             bar.progress((i + 1) / len(targets),
                          text=f"Sent to {s['name']}...")
         st.success(f"✅ Broadcast sent to {len(targets)} students!")
-
