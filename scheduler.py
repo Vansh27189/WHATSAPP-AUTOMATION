@@ -1,6 +1,6 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from database import get_unpaid_students
-from whatsapp import send_text
+from whatsapp import send_template
 import time
 
 def send_fee_reminders():
@@ -10,13 +10,16 @@ def send_fee_reminders():
         print("✅ All fees paid")
         return
     for student in unpaid:
-        message = (
-            f"📚 Fee Reminder\n\n"
-            f"Hi {student['name']}, your fee of ₹{student['fee_amount']} "
-            f"for *{student['batch']}* batch is due on {student['fee_due_date']}.\n\n"
-            f"Contact {student['institute']} to avoid late charges. 🙏"
+        send_template(
+            to            = student["phone"],
+            template_name = "fees_remainder1",
+            params        = [
+                student["name"],
+                str(int(student["fee_amount"])),
+                student["batch"],
+                student["fee_due_date"]
+            ]
         )
-        send_text(student["phone"], message)
         time.sleep(1)
         print(f"✅ Sent to {student['name']}")
     print(f"📤 Done — {len(unpaid)} reminders sent\n")

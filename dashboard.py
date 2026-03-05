@@ -4,7 +4,7 @@ import time
 from database import (init_db, verify_login, import_from_excel,
                       get_all_students, get_unpaid_students,
                       mark_paid, mark_unpaid, get_all_institutes)
-from whatsapp import send_text, send_attendance_alert
+from whatsapp import send_text, send_template, send_attendance_alert
 
 st.set_page_config(page_title="CoachingBot", page_icon="🎓", layout="wide")
 init_db()
@@ -171,19 +171,22 @@ with col1:
         else:
             bar = st.progress(0, text="Sending...")
             for i, s in enumerate(unpaid):
-                message = (
-                    f"📚 Fee Reminder\n\n"
-                    f"Hi {s['name']}, your fee of ₹{s['fee_amount']} "
-                    f"for *{s['batch']}* batch is due on {s['fee_due_date']}.\n\n"
-                    f"Contact {s['institute']} to avoid late charges. 🙏"
+                send_template(
+                    to            = s["phone"],
+                    template_name = "fees_remainder1",
+                    params        = [
+                        s["name"],
+                        str(int(s["fee_amount"])),
+                        s["batch"],
+                        s["fee_due_date"]
+                    ]
                 )
-                send_text(s["phone"], message)
                 time.sleep(1)
-                bar.progress((i + 1) / len(unpaid),
-                             text=f"Sent to {s['name']}...")
+                bar.progress((i + 1) / len(unpaid), text=f"Sent to {s['name']}...")
             st.success(f"✅ Reminders sent to {len(unpaid)} students!")
 with col2:
     st.metric("Will receive reminder", len(unpaid))
+
 
 # ── SECTION 4: FEE STATUS MANAGEMENT ────────────────
 st.markdown("---")
