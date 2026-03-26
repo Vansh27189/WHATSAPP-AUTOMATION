@@ -1,6 +1,6 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-from database import get_unpaid_students
-from whatsapp import send_template
+from backend.database import get_unpaid_students
+from backend.whatsapp import send_template
 import time
 
 def send_fee_reminders():

@@ -1,53 +1,47 @@
 # Python cache
-
-**pycache**/
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
 
 # Virtual environment
-
 venv/
 .env/
 .env
-
-# Environment variables
-
 *.env
 
 # Local database
-
 *.db
 *.sqlite3
 
-# Excel temporary / data files
+# Frontend build
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
 
+# Test scratch data
+tests/.tmp_api/
+
+# Excel temporary / data files
 temp_*.xlsx
 
 # Logs
-
 *.log
 
 # OS files
-
 .DS_Store
 Thumbs.db
 
 # Cloudflare tunnel binaries
-
 cloudflared*
 *.exe
 
 # VS Code settings (optional)
-
 .vscode/
 
 # Python build files
-
 build/
 dist/
 *.egg-info/
-
-# Cloudflare tunnel binary
-cloudflared*
-*.exe
