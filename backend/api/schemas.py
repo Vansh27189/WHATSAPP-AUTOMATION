@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+﻿from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -6,6 +6,14 @@ from pydantic import BaseModel, Field
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+class LogoutRequest(BaseModel):
+    refresh_token: Optional[str] = None
 
 
 class LogoutResponse(BaseModel):
@@ -21,10 +29,15 @@ class AuthUser(BaseModel):
 class LoginResponse(BaseModel):
     token: str
     user: AuthUser
+    refresh_token: Optional[str] = None
 
 
 class StudentsResponse(BaseModel):
     students: list[dict]
+    total: int = 0
+    page: int = 1
+    page_size: int = 50
+    total_pages: int = 1
 
 
 class InstitutesResponse(BaseModel):

@@ -1,4 +1,5 @@
-import os
+﻿from __future__ import annotations
+
 from datetime import date
 
 import requests
@@ -6,9 +7,16 @@ from dotenv import load_dotenv
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-load_dotenv()
+from backend.config import WHATSAPP_TIMEOUT_SECONDS
+from backend.logging_config import get_logger
 
-TIMEOUT_SECONDS = float(os.getenv("WHATSAPP_TIMEOUT_SECONDS", "15"))
+load_dotenv()
+logger = get_logger("whatsapp")
+
+
+def _mask_phone(phone: str) -> str:
+    digits = "".join(ch for ch in str(phone) if ch.isdigit())
+    return f"***{digits[-4:]}" if digits else "***"
 
 
 def _session():
@@ -27,6 +35,8 @@ def _session():
 
 
 def _get_secret(key: str) -> str:
+    import os
+
     value = os.getenv(key)
     if value:
         return value
@@ -41,12 +51,23 @@ def _send(payload: dict):
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
-    response = _session().post(url, json=payload, headers=headers, timeout=TIMEOUT_SECONDS)
+    response = _session().post(url, json=payload, headers=headers, timeout=WHATSAPP_TIMEOUT_SECONDS)
     response_body = response.json() if response.content else {}
-    attempted_to = str(payload.get("to", ""))[-4:]
-    print(f"Status: {response.status_code} | Send attempted for {attempted_to}")
+    logger.info(
+        "whatsapp_send",
+        action="whatsapp_send",
+        status_code=response.status_code,
+        recipient=_mask_phone(str(payload.get("to", ""))),
+        message_type=payload.get("type"),
+    )
     if not response.ok:
-        print(f"Error response: {response_body}")
+        logger.warning(
+            "whatsapp_send_failed",
+            action="whatsapp_send_failed",
+            status_code=response.status_code,
+            recipient=_mask_phone(str(payload.get("to", ""))),
+            error=response_body,
+        )
     return response
 
 

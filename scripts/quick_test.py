@@ -1,7 +1,11 @@
+﻿import os
 import time
-import os
 
+from backend.logging_config import configure_logging, get_logger
 from backend.whatsapp import send_template
+
+configure_logging()
+logger = get_logger("quick_test")
 
 students = [
     {
@@ -38,18 +42,13 @@ if __name__ == "__main__":
     if os.getenv("ENABLE_QUICK_TEST") != "true":
         raise SystemExit("Set ENABLE_QUICK_TEST=true to run this script.")
 
-    for s in students:
+    for student in students:
         send_template(
-            to            = s["phone"],
-            template_name = "fees_remainder1",
-            params        = [
-                s["name"],
-                s["fee_amount"],
-                s["batch"],
-                s["fee_due_date"]
-            ]
+            to=student["phone"],
+            template_name="fees_remainder1",
+            params=[student["name"], student["fee_amount"], student["batch"], student["fee_due_date"]],
         )
         time.sleep(1)
-        print(f"✅ Sent to {s['name']} ({s['phone']})")
+        logger.info("quick_test_sent", action="quick_test", student=student["name"], recipient=f"***{student['phone'][-4:]}")
 
-    print(f"\n🎉 Done! Sent to {len(students)} students.")
+    logger.info("quick_test_complete", action="quick_test", total=len(students))
